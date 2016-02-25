@@ -1,4 +1,4 @@
-var ImageScale = require('../../../src/image-scale.js')
+import ImageScale from '../../../src/image-scale.js'
 
 document.getElementById('fill').addEventListener('click', function() {
   change('fill')
@@ -17,7 +17,6 @@ document.getElementById('none').addEventListener('click', function() {
 })
 
 function change(method) {
-  //document.getElementsByTagName("img")[0].setAttribute("data-scale", method);
-  alert("ti pedik")
-  var scaled = new ImageScale('img', method)
+  var element = document.querySelector('img')
+  var scaled = new ImageScale(element, method)
 }
