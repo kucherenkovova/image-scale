@@ -1,8 +1,186 @@
 import $ from 'jquery'
 
 'use strict'
+$.fn.imageScale = function( options ) {
 
-const CONSTANTS = {
+  return this.each(function() {
+    var that = this,
+      $this = $(this),
+      data = $this.data('imageScale'),
+      $img = this.tagName === 'IMG' ? $this : $this.find('img');
+
+    if (!data) {
+      var didLoad = $img[0].complete,
+        formattedOpt = $.extend({}, $.fn.imageScale.defaults, typeof options == 'object' && options),
+
+        loadFunc = function() {
+          $this.data('imageScale', (data = new ImageScale(that, formattedOpt)));
+
+          data.scale(true, formattedOpt);
+        };
+
+      if (didLoad) {
+        loadFunc.apply($this[0]);
+      }
+      else {
+        $img.on('load', loadFunc).attr('src', $img.attr('src'));
+      }
+    }
+    else {
+      if (typeof options == 'string') data[options]();
+      else if (typeof options == 'object') {
+        var method = options.method || 'scale';
+        data[method](false, options);
+      }
+      else data.scale();
+    }
+  })
+}
+
+$.fn.imageScale.defaults = {
+  /**
+   Determines how the image will scale to fit within its containing space. Possible values:
+
+   * **fill** - stretches or compresses the source image to fill the target frame
+   * **best-fill** - fits the shortest side of the source image within the target frame while maintaining the original aspect ratio
+   * **best-fit** - fits the longest edge of the source image within the target frame while maintaining the original aspect ratio
+   * **best-fit-down** - same as *best-fit* but will not stretch the source if it is smaller than the target
+   * **none** - the source image is left unscaled
+
+   @type String
+   @default best-fill
+   @since Version 1.2
+   */
+  scale: 'best-fill',
+
+  /**
+   Align the image within its frame. Possible values:
+
+   * **left**
+   * **right**
+   * **center**
+   * **top**
+   * **bottom**
+   * **top-left**
+   * **top-right**
+   * **bottom-left**
+   * **bottom-right**
+
+   @type String
+   @default center
+   @since Version 1.2
+   */
+  align: 'center',
+
+  /**
+   A jQuery Object against which the image size will be calculated.
+   If null, the parent of the image will be used.
+
+   @type jQuery Object
+   @default null
+   @since Version 1.0
+   */
+  parent: null,
+
+  /**
+   A boolean determining if the parent should hide its overflow.
+
+   @type Boolean
+   @default true
+   @since Version 1.0
+   */
+  hideParentOverflow: true,
+
+  /**
+   A duration in milliseconds determining how long the fadeIn animation will run when your image is scale for the firstTime.
+
+   Set it to 0 if you don't want any animation.
+
+   @type Number|String
+   @default 0
+   @since Version 1.1
+   */
+  fadeInDuration: 0,
+
+  /**
+   A boolean indicating if the image size should be rescaled when the window is resized.
+
+   The window size is checked using requestAnimationFrame for good performance.
+
+   @type Boolean
+   @default false
+   @since Version 1.0
+   */
+  rescaleOnResize: false,
+
+  /**
+   A function that will be call each time the receiver is scaled.
+
+   Example:
+
+   $images.imageScale({
+            didScale: function() {
+              console.log('did scale img: ', this.element);
+            }
+          });
+
+   @type Function
+   @param firstTime {Boolean} true if the image was scale for the first time.
+   @param options {Object} the options passed to the scale method.
+   @since Version 2.0
+   */
+  didScale: function(firstTime, options) {},
+
+  /**
+   A number indicating the log level :
+
+   0: silent
+   1: error
+   2: error & warning
+   3: error & warning & notice
+
+   @type Number
+   @default 0
+   @since Version 1.0
+   */
+  logLevel: 0
+}
+
+// ..........................................................
+// IMAGE SCALE PUBLIC CLASS DEFINITION
+//
+
+var ImageScale = function(element, options) {
+  var that = this;
+  that.options = options;
+  that.element = element;
+
+  var $element = that.$element = $(element),
+    $img = that.$img = element.tagName === 'IMG' ? $element : $element.find('img'),
+    img = that.img = $img[0];
+
+  that.src = $img.attr('src');
+
+  that.imgWidth = img.naturalWidth || img.width;
+  that.imgHeight = img.naturalHeight || img.height;
+
+  var $parent = that.$parent = options.parent?options.parent:$($element.parent()[0]);
+  that.parent = $parent[0];
+
+  // Fixes: https://github.com/gestixi/image-scale/issues/1
+  if ($parent.css('position') === 'static') {
+    $parent.css('position', 'relative');
+  }
+
+  if (options.rescaleOnResize) {
+    $(window).resize(function(e) { that.scheduleScale(); });
+  }
+}
+
+$.fn.imageScale.Constructor = ImageScale;
+
+ImageScale.prototype = {
+
   NONE: 'none',
   FILL: 'fill',
   BEST_FILL: 'best-fill',
@@ -17,40 +195,39 @@ const CONSTANTS = {
   ALIGN_TOP_LEFT: 'top-left',
   ALIGN_TOP_RIGHT: 'top-right',
   ALIGN_BOTTOM_LEFT: 'bottom-left',
-  ALIGN_BOTTOM_RIGHT: 'bottom-right'
-}
+  ALIGN_BOTTOM_RIGHT: 'bottom-right',
 
-class ImageScale {
+  constructor: ImageScale,
 
-  constructor(element, options) {
-    this.options = options
-    this.element = element
+  /**
+   The initial element.
 
-    var $element = this.$element = $(element),
-      $img = this.$img = element.tagName === 'IMG' ? $element : $element.find('img'),
-      img = this.img = $img[0]
+   @type DOM Element
+   */
+  element: null,
 
-    this.src = $img.attr('src')
+  /**
+   The passed options.
 
-    this.imgWidth = img.naturalWidth || img.width;
-    this.imgHeight = img.naturalHeight || img.height;
+   @type Object
+   */
+  options: null,
 
-    var $parent = this.$parent = options.parent ? options.parent : $($element.parent()[0]);
-    this.parent = $parent[0];
+  /**
+   Main method. Used to scale the images.
 
-    // Fixes: https://github.com/gestixi/image-scale/issues/1
-    if ($parent.css('position') === 'static') {
-      $parent.css('position', 'relative');
-    }
+   When `rescaleOnResize` is set to true, this method is executed each time the
+   windows size changes.
 
-    if (options.rescaleOnResize) {
-      $(window).resize(function (e) {
-        that.scheduleScale();
-      });
-    }
-  }
+   If `rescaleOnResize` is set to false, you may want to call it manually. Here is an
+   example on how you should do it:
 
-  scale (firstTime, opt) {
+   $image.imageScale('scale');
+
+
+   @param {Boolean} firstTime
+   */
+  scale: function(firstTime, opt) {
     if (this._isDestroyed || this._canScale === false) return;
 
     var that = this,
@@ -113,14 +290,14 @@ class ImageScale {
 
     if (!scale) {
       if (options.logLevel > 2) {
-        console.log('imageScale - DEBUG NOTICE: The scale property is null.', element)
+        console.log('imageScale - DEBUG NOTICE: The scale property is null.', element);
       }
       return;
     }
 
     if (this._cacheDestWidth === destWidth && this._cacheDestHeight === destHeight) {
       if (options.logLevel > 2) {
-        console.log(`imageScale - DEBUG NOTICE: The parent size hasn't changed: dest width: ${destWidth} - dest height: ${destHeight}.`, element);
+        console.log('imageScale - DEBUG NOTICE: The parent size hasnt changed: dest width: '+destWidth+' - dest height: '+destHeight+'.', element);
       }
     }
 
@@ -129,7 +306,7 @@ class ImageScale {
 
     if (!(destWidth && destHeight && sourceWidth && sourceHeight)) {
       if (options.logLevel > 0) {
-        console.error(`imageScale - DEBUG ERROR: The dimensions are incorrect: source width: ${sourceWidth} - source height: ${sourceHeight} - dest width: ${destWidth} - dest height: ${destHeight}.`, element);
+        console.error('imageScale - DEBUG ERROR: The dimensions are incorrect: source width: '+sourceWidth+' - source height: '+sourceHeight+' - dest width: '+destWidth+' - dest height: '+destHeight+'.', element);
       }
       return;
     }
@@ -150,7 +327,7 @@ class ImageScale {
     }
 
     options.didScale.call(this, firstTime, opt);
-  }
+  },
 
   /**
    Removes the data for the element.
@@ -160,10 +337,10 @@ class ImageScale {
    $image.imageScale('destroy');
 
    */
-  destroy() {
+  destroy: function() {
     this._isDestroyed = true;
     this.$element.removeData('imageScale');
-  }
+  },
 
   /**
    @private
@@ -179,7 +356,7 @@ class ImageScale {
    @param {Number} destHeight
    @returns {Object} the inner frame with properties: { x: value, y: value, width: value, height: value }
    */
-  _innerFrameForSize(scale, align, sourceWidth, sourceHeight, destWidth, destHeight) {
+  _innerFrameForSize: function(scale, align, sourceWidth, sourceHeight, destWidth, destHeight) {
     var scaleX,
       scaleY,
       result;
@@ -195,7 +372,7 @@ class ImageScale {
     switch (scale) {
       case this.BEST_FIT_DOWN_ONLY:
         if (scale !== this.BEST_FIT_DOWN_ONLY && this.options.logLevel > 1) {
-          console.warn(`imageScale - DEBUG WARNING: The scale ${scale} was not understood.`);
+          console.warn('imageScale - DEBUG WARNING: The scale '+scale+ 'was not understood.');
         }
 
         if ((sourceWidth > destWidth) || (sourceHeight > destHeight)) {
@@ -257,14 +434,14 @@ class ImageScale {
         break;
       default: // this.ALIGN_CENTER
         if (align !== this.ALIGN_CENTER && this.options.logLevel > 1) {
-          console.warn(`imageScale - DEBUG WARNING: The align ${align} was not understood.`);
+          console.warn('imageScale - DEBUG WARNING: The align '+align+' was not understood.');
         }
         result.x = (destWidth / 2) - (sourceWidth / 2);
         result.y = (destHeight / 2) - (sourceHeight / 2);
     }
 
     return result;
-  }
+  },
 
   /**
    @private
@@ -273,86 +450,34 @@ class ImageScale {
 
    @returns {Boolean}
    */
-  _needUpdate(parent) {
-  var size = parent.clientHeight + ' ' + parent.clientWidth;
+  _needUpdate: function(parent) {
+    var size = parent.clientHeight + ' ' + parent.clientWidth;
 
-  if (this._lastParentSize !== size) {
-    this._lastParentSize = size;
-    return true;
-  }
-  return false;
-}
+    if (this._lastParentSize !== size) {
+      this._lastParentSize = size;
+      return true;
+    }
+    return false;
+  },
 
   /**
    @private
 
    Schedule a scale update.
    */
-  scheduleScale() {
-  if (this._didScheduleScale) return;
+  scheduleScale: function() {
+    if (this._didScheduleScale) return;
 
-  if (window.requestAnimationFrame) {
-    var that = this;
-    this._didScheduleScale = true;
-    // setTimeout important when resizing down if the scrollbar were visible
-    requestAnimationFrame(function() { setTimeout(function() { that.scale(); }, 0); });
-  } else {
-    this.scale();
+    if (window.requestAnimationFrame) {
+      var that = this;
+      this._didScheduleScale = true;
+      // setTimeout important when resizing down if the scrollbar were visible
+      requestAnimationFrame(function() { setTimeout(function() { that.scale(); }, 0); });
+    }
+    else {
+      this.scale();
+    }
   }
 }
 
-  static get NONE() {
-    return CONSTANTS.NONE
-  }
-
-  static get FILL() {
-    return CONSTANTS.FILL
-  }
-
-  static get BEST_FILL() {
-    return CONSTANTS.BEST_FILL
-  }
-
-  static get BEST_FIT() {
-    return CONSTANTS.BEST_FIT
-  }
-
-  static get BEST_FIT_DOWN_ONLY() {
-    return CONSTANTS.BEST_FIT_DOWN_ONLY
-  }
-
-  static get ALIGN_LEFT() {
-    return CONSTANTS.ALIGN_LEFT
-  }
-
-  static get ALIGN_RIGHT() {
-    return CONSTANTS.ALIGN_RIGHT
-  }
-
-  static get ALIGN_CENTER() {
-    return CONSTANTS.ALIGN_CENTER
-  }
-
-  static get ALIGN_TOP() {
-    return CONSTANTS.ALIGN_TOP
-  }
-
-  static get ALIGN_BOTTOM() {
-    return CONSTANTS.ALIGN_BOTTOM
-  }
-
-  static get ALIGN_TOP_LEFT() {
-    return CONSTANTS.ALIGN_TOP_LEFT
-  }
-
-  static get ALIGN_BOTTOM_LEFT() {
-    return CONSTANTS.ALIGN_BOTTOM_LEFT
-  }
-
-  static get ALIGN_BOTTOM_RIGHT() {
-    return CONSTANTS.ALIGN_BOTTOM_RIGHT
-  }
-}
-
-
-export default ImageScale;
+module.exports = ImageScale

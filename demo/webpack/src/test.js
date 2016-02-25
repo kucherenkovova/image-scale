@@ -1,4 +1,4 @@
-import ImageScale from '../../../src/image-scale.js'
+var ImageScale = require('../../../src/image-scale.js')
 
 document.getElementById('fill').addEventListener('click', function() {
   change('fill')
