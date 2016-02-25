@@ -355,4 +355,4 @@ class ImageScale {
 }
 
 
-export default imageScale;
+export default ImageScale;
