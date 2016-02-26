@@ -3,7 +3,6 @@
 let imageScale = function( options ) {
   //let array = document.querySelectorAll();
 
-  let imageScale = function( options ) {
     return Array.prototype.forEach(function() {
       let that = this,
         data = that.getAttribute('imageScale'),
@@ -179,7 +178,9 @@ let ImageScale = function(element, options) {
   //}
 
   if (options.rescaleOnResize) {
-    $(window).resize(function(e) { that.scheduleScale(); }); //TODO
+    window.onresize = function() {
+      that.scheduleScale();
+    }
   }
 }
 
@@ -238,7 +239,7 @@ ImageScale.prototype = {
 
     let that = this,
       options = this.options,
-      $parent = this.$parent,
+      parent = this.$parent,
       element = this.element,
       $element = this.$element,
       img = this.img,
@@ -246,7 +247,7 @@ ImageScale.prototype = {
 
     if (firstTime) {
       if (options.hideParentOverflow) {
-        $parent.style.overflow = 'hidden'
+        parent.style.overflow = 'hidden'
       }
     }
     else {
@@ -281,11 +282,11 @@ ImageScale.prototype = {
       }, transition);
     }
 
-    let destWidth = opt.destWidth ? opt.destWidth : $parent.outerWidth(),    //TODO
-      destHeight = opt.destHeight ? opt.destHeight : $parent.outerHeight(),   //TODO
+    let destWidth = opt.destWidth ? opt.destWidth : $parent.offsetWidth,    //TODO
+      destHeight = opt.destHeight ? opt.destHeight : $parent.offsetHeight,   //TODO
 
-      destInnerWidth = opt.destWidth ? opt.destWidth : $parent.innerWidth(),  //TODO
-      destInnerHeight = opt.destHeight ? opt.destHeight : $parent.innerHeight(),  //TODO
+      destInnerWidth = opt.destWidth ? opt.destWidth : $parent.clientWidth,  //TODO
+      destInnerHeight = opt.destHeight ? opt.destHeight : $parent.clientHeight,  //TODO
 
       widthOffset = destWidth - destInnerWidth,
       heightOffset = destHeight - destInnerHeight,
