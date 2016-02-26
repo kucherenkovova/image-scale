@@ -1,5 +1,9 @@
 var ImageScale = require('../../../src/image-scale.js')
 
+var img = document.querySelector('img')
+
+var instance = new ImageScale(img)
+
 document.getElementById('fill').addEventListener('click', function() {
   change('fill')
 })
@@ -17,6 +21,5 @@ document.getElementById('none').addEventListener('click', function() {
 })
 
 function change(method) {
-  var element = document.querySelector('img')
-  var scaled = new ImageScale(element, method)
+  instance.scale({scale: method})
 }
