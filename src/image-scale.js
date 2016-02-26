@@ -3,26 +3,29 @@
 let imageScale = function( options ) {
   //let array = document.querySelectorAll();
 
-  return this.each(function() {
-    let that = this,
-      $this = $(this),
-      data = $this.data('imageScale'),
-      image = this.tagName === 'IMG' ? $this : $this.querySelectorAll('img');
+  let imageScale = function( options ) {
+    return Array.prototype.forEach(function() {
+      let that = this,
+        data = that.getAttribute('imageScale'),
+        image = this.tagName === 'IMG' ? that : that.querySelectorAll('img');
 
     if (!data) {
       let didLoad = image[0].complete,
-        formattedOpt = $.extend({}, this.defaults, typeof options == 'object' && options),
+        //formattedOpt = extend({}, this.defaults, typeof options == 'object' && options),
+        formattedOpt = Object.assign({}, this.defaults, typeof options == 'object' && options),
 
         loadFunc = function() {
-          $this.data('imageScale', (data = new ImageScale(that, formattedOpt)));
+          //$this.data('imageScale', (data = new ImageScale(that, formattedOpt)));
 
+          //that.setAttribute('imageScale', (data = new ImageScale(that, formattedOpt)));
           data.scale(true, formattedOpt);
         };
 
       if (didLoad) {
-        loadFunc.apply($this[0]);
+        loadFunc.apply(that[0]);
       }
       else {
+        //$img.on("load", loadFunc).attr("src", $img.attr("src"));
         image.addEventListener('load', loadFunc).getAttribute('src', image.getAttribute('src'));
       }
     }
@@ -176,7 +179,7 @@ let ImageScale = function(element, options) {
   //}
 
   if (options.rescaleOnResize) {
-    $(window).resize(function(e) { that.scheduleScale(); });
+    $(window).resize(function(e) { that.scheduleScale(); }); //TODO
   }
 }
 
@@ -243,17 +246,16 @@ ImageScale.prototype = {
 
     if (firstTime) {
       if (options.hideParentOverflow) {
-        $parent.css({ overflow: 'hidden' });
+        $parent.style.overflow = 'hidden'
       }
     }
     else {
       // If the source of the image has changed
-      if (this.src !== $img.attr('src')) {    //TODO
-        this.destroy();   //TODO
+      if (this.src !== $img.getAttribute('src')) {
+        this.destroy();
         //$element.data('imageScale', null);
         //$element.imageScale(options);
-
-        $element.data('imageScale', null); //TODO
+        $element.setAttribute('imageScale', "");
         $element.imageScale(options);
         return;
       }
@@ -290,8 +292,8 @@ ImageScale.prototype = {
 
       scaleData = $element.getAttribute('data-scale'),
       alignData = $element.getAttribute('data-align'),
-    //scaleData = $element.attr('data-scale'),
-    //alignData = $element.attr('data-align'),
+      //scaleData = $element.attr('data-scale'),
+      //alignData = $element.attr('data-align'),
 
       scale = scaleData?scaleData:options.scale,
       align = alignData?alignData:options.align,
@@ -357,7 +359,9 @@ ImageScale.prototype = {
    */
   destroy: function() {
     this._isDestroyed = true;
-    this.$element.removeData('imageScale'); //??????
+    //this.$element.removeData('imageScale');
+    this.setAttribute("data-usr", "");
+
   },
 
   /**
