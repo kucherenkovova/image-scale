@@ -1,17 +1,17 @@
-import $ from 'jquery'
-
 'use strict'
-$.fn.imageScale = function( options ) {
+
+let imageScale = function( options ) {
+  //let array = document.querySelectorAll();
 
   return this.each(function() {
-    var that = this,
+    let that = this,
       $this = $(this),
       data = $this.data('imageScale'),
-      $img = this.tagName === 'IMG' ? $this : $this.find('img');
+      image = this.tagName === 'IMG' ? $this : $this.querySelectorAll('img');
 
     if (!data) {
-      var didLoad = $img[0].complete,
-        formattedOpt = $.extend({}, $.fn.imageScale.defaults, typeof options == 'object' && options),
+      let didLoad = image[0].complete,
+        formattedOpt = $.extend({}, this.defaults, typeof options == 'object' && options),
 
         loadFunc = function() {
           $this.data('imageScale', (data = new ImageScale(that, formattedOpt)));
@@ -23,13 +23,13 @@ $.fn.imageScale = function( options ) {
         loadFunc.apply($this[0]);
       }
       else {
-        $img.on('load', loadFunc).attr('src', $img.attr('src'));
+        image.addEventListener('load', loadFunc).getAttribute('src', image.getAttribute('src'));
       }
     }
     else {
       if (typeof options == 'string') data[options]();
       else if (typeof options == 'object') {
-        var method = options.method || 'scale';
+        let method = options.method || 'scale';
         data[method](false, options);
       }
       else data.scale();
@@ -150,27 +150,30 @@ $.fn.imageScale.defaults = {
 // IMAGE SCALE PUBLIC CLASS DEFINITION
 //
 
-var ImageScale = function(element, options) {
-  var that = this;
+let ImageScale = function(element, options) {
+  let that = this;
   that.options = options;
   that.element = element;
 
-  var $element = that.$element = $(element),
-    $img = that.$img = element.tagName === 'IMG' ? $element : $element.find('img'),
-    img = that.img = $img[0];
+  let $element = that.$element = document.querySelectorAll(element),
+    $img = that.$img = element.tagName === 'IMG' ? $element : $element.querySelector('img'),
+    img = that.img = $img[0]; //?
 
-  that.src = $img.attr('src');
+  that.src = $img.getAttribute('src');
 
   that.imgWidth = img.naturalWidth || img.width;
   that.imgHeight = img.naturalHeight || img.height;
 
-  var $parent = that.$parent = options.parent?options.parent:$($element.parent()[0]);
+  let $parent = that.$parent = options.parent?options.parent:document.querySelectorAll($element.parentNode[0]);
   that.parent = $parent[0];
 
   // Fixes: https://github.com/gestixi/image-scale/issues/1
-  if ($parent.css('position') === 'static') {
-    $parent.css('position', 'relative');
+  if ($parent.style.position === 'static') {
+    $parent.style.position = 'relative'
   }
+  //if ($parent.css('position') === 'static') {
+  //  $parent.css('position', 'relative');
+  //}
 
   if (options.rescaleOnResize) {
     $(window).resize(function(e) { that.scheduleScale(); });
@@ -230,7 +233,7 @@ ImageScale.prototype = {
   scale: function(firstTime, opt) {
     if (this._isDestroyed || this._canScale === false) return;
 
-    var that = this,
+    let that = this,
       options = this.options,
       $parent = this.$parent,
       element = this.element,
@@ -245,9 +248,12 @@ ImageScale.prototype = {
     }
     else {
       // If the source of the image has changed
-      if (this.src !== $img.attr('src')) {
-        this.destroy();
-        $element.data('imageScale', null);
+      if (this.src !== $img.attr('src')) {    //TODO
+        this.destroy();   //TODO
+        //$element.data('imageScale', null);
+        //$element.imageScale(options);
+
+        $element.data('imageScale', null); //TODO
         $element.imageScale(options);
         return;
       }
@@ -260,28 +266,32 @@ ImageScale.prototype = {
     }
     opt = opt ? opt : {};
 
-    var transition = opt.transition;
+    let transition = opt.transition;
     if (transition) {
       this._canScale = false;
-      $element.css('transition', 'all '+transition+'ms');
+      //$element.css('transition', 'all '+transition+'ms');
+      $element.style.transition = 'all '+transition+'ms'
 
       setTimeout(function() {
         that._canScale = null;
-        $element.css('transition', 'null');
+        //$element.css('transition', 'null');
+        $element.style.transition = 'null'
       }, transition);
     }
 
-    var destWidth = opt.destWidth ? opt.destWidth : $parent.outerWidth(),
-      destHeight = opt.destHeight ? opt.destHeight : $parent.outerHeight(),
+    let destWidth = opt.destWidth ? opt.destWidth : $parent.outerWidth(),    //TODO
+      destHeight = opt.destHeight ? opt.destHeight : $parent.outerHeight(),   //TODO
 
-      destInnerWidth = opt.destWidth ? opt.destWidth : $parent.innerWidth(),
-      destInnerHeight = opt.destHeight ? opt.destHeight : $parent.innerHeight(),
+      destInnerWidth = opt.destWidth ? opt.destWidth : $parent.innerWidth(),  //TODO
+      destInnerHeight = opt.destHeight ? opt.destHeight : $parent.innerHeight(),  //TODO
 
       widthOffset = destWidth - destInnerWidth,
       heightOffset = destHeight - destInnerHeight,
 
-      scaleData = $element.attr('data-scale'),
-      alignData = $element.attr('data-align'),
+      scaleData = $element.getAttribute('data-scale'),
+      alignData = $element.getAttribute('data-align'),
+    //scaleData = $element.attr('data-scale'),
+    //alignData = $element.attr('data-align'),
 
       scale = scaleData?scaleData:options.scale,
       align = alignData?alignData:options.align,
@@ -301,7 +311,7 @@ ImageScale.prototype = {
       }
     }
 
-    var sourceWidth = this.imgWidth,
+    let sourceWidth = this.imgWidth,
       sourceHeight = this.imgHeight;
 
     if (!(destWidth && destHeight && sourceWidth && sourceHeight)) {
@@ -314,15 +324,23 @@ ImageScale.prototype = {
     this._cacheDestWidth = destWidth;
     this._cacheDestHeight = destHeight;
 
-    var layout = this._innerFrameForSize(scale, align, sourceWidth, sourceHeight, destWidth, destHeight);
+    let layout = this._innerFrameForSize(scale, align, sourceWidth, sourceHeight, destWidth, destHeight);
 
     if (widthOffset) layout.x -= widthOffset/2;
     if (heightOffset) layout.y -= heightOffset/2;
 
-    $element.css({ position: 'absolute', top: layout.y+'px', left: layout.x+'px', width: layout.width+'px', height: layout.height+'px', 'max-width': 'none' });
+    //$element.css({ position: 'absolute', top: layout.y+'px', left: layout.x+'px', width: layout.width+'px', height: layout.height+'px', 'max-width': 'none' });
+    $element.style.position = 'absolute'
+    $element.style.top = layout.y+'px'
+    $element.style.left = layout.x+'px'
+    $element.style.width = layout.width+'px'
+    $element.style.height = layout.height+'px'
+    $element.style.maxWidth = 'none'
+
 
     if (firstTime && fadeInDuration) {
-      $element.css({ display: 'none' });
+      //$element.css({ display: 'none' });
+      $element.style.display = 'none'
       $element.fadeIn(fadeInDuration);
     }
 
@@ -339,7 +357,7 @@ ImageScale.prototype = {
    */
   destroy: function() {
     this._isDestroyed = true;
-    this.$element.removeData('imageScale');
+    this.$element.removeData('imageScale'); //??????
   },
 
   /**
@@ -357,7 +375,7 @@ ImageScale.prototype = {
    @returns {Object} the inner frame with properties: { x: value, y: value, width: value, height: value }
    */
   _innerFrameForSize: function(scale, align, sourceWidth, sourceHeight, destWidth, destHeight) {
-    var scaleX,
+    let scaleX,
       scaleY,
       result;
 
@@ -451,7 +469,7 @@ ImageScale.prototype = {
    @returns {Boolean}
    */
   _needUpdate: function(parent) {
-    var size = parent.clientHeight + ' ' + parent.clientWidth;
+    let size = parent.clientHeight + ' ' + parent.clientWidth;
 
     if (this._lastParentSize !== size) {
       this._lastParentSize = size;
@@ -469,7 +487,7 @@ ImageScale.prototype = {
     if (this._didScheduleScale) return;
 
     if (window.requestAnimationFrame) {
-      var that = this;
+      let that = this;
       this._didScheduleScale = true;
       // setTimeout important when resizing down if the scrollbar were visible
       requestAnimationFrame(function() { setTimeout(function() { that.scale(); }, 0); });
@@ -480,4 +498,4 @@ ImageScale.prototype = {
   }
 }
 
-module.exports = ImageScale
+module.exports = imageScale
