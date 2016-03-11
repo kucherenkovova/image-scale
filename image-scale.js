@@ -383,10 +383,6 @@
 
       switch (scale) {
         case this.BEST_FIT_DOWN_ONLY:
-          if (scale !== this.BEST_FIT_DOWN_ONLY && this.options.logLevel > 1) {
-            console.warn("imageScale - DEBUG WARNING: The scale '"+scale+"' was not understood.");
-          }
-        
           if ((sourceWidth > destWidth) || (sourceHeight > destHeight)) {
             scale = scaleX < scaleY ? scaleX : scaleY;
           } else {
